@@ -1,21 +1,6 @@
-"""
-functions collection 
-    - functions for dynamic flat-field correction
-    - functions for reading pca_info  
-TODO 
-    - go through dffc functions make it without obvious 
-    - rename pca_info for norm info? ?? or may stay like it is?
-
-Parameters
-----------
-None
-Returns
--------
-None
-"""
-
 import pandas as pd
-from skimage.restoration import denoise_tv_chambolle
+# from skimage.restoration import denoise_tv_chambolle
+# from skimage.restoration import denoise_wavelet, cycle_spin, denoise_tv_bregman 
 import scipy.optimize as op
 from scipy import ndimage
 from skimage.transform import downscale_local_mean
@@ -35,13 +20,14 @@ def read_pca_info_all(filename):
     #     pca_info['image_dimensions'] = f.get('image_dimensions')[:]
         fkeys =  [key for key in f.keys()]
         pca_info['image_dimensions'] = f.get('image_dimensions')[:]
+        x, y = pca_info['image_dimensions']
         pca_info['mean_flat'] = f.get('mean_flat')[:]
         pca_info['mean_dark'] = f.get('mean_dark')[:]
+        if 'rank' in fkeys:
+            pca_info['rank'] = f.get('rank')[0]
         if 'components_matrix' in fkeys:
             pca_info['components_matrix'] = f.get('components_matrix')[:,:]
             pca_info['components_matrix'] = pca_info['components_matrix'].reshape(pca_info['rank'],x*y)
-        if 'rank' in fkeys:
-            pca_info['rank'] = f.get('rank')[0]
         if 'mode_dn' in fkeys:
             pca_info['mode_dn'] = f.get('mode_dn')[:,:]
         if 'explained_variance_ratio' in fkeys:
@@ -49,45 +35,9 @@ def read_pca_info_all(filename):
         if 'explained_variance_' in fkeys:
             pca_info['explained_variance_'] = f.get('explained_variance_')[:]
     #reshape 
-    x, y = pca_info['image_dimensions']
     pca_info['mean_flat'] = pca_info['mean_flat'].reshape(x,y)
     pca_info['mean_dark'] = pca_info['mean_dark'].reshape(x,y)
     return pca_info
-
-def read_pca_info_bothCameras(filename):
-    pca_info_cam1 = {}
-    pca_info_cam2 = {}
-    with h5py.File(filename, "r") as f:
-        print("Keys: %s" % f.keys())
-    #     pca_info['image_dimensions'] = f.get('image_dimensions')[:]
-        fkeys =  [key for key in f.keys()]
-        pca_info_cam1['image_dimensions'] = f.get('image_dimensions')[:]
-        pca_info_cam2['image_dimensions'] = f.get('image_dimensions')[:]
-        pca_info_cam1['mean_flat'] = f.get('mean_flat_cam1')[:]
-        pca_info_cam2['mean_flat'] = f.get('mean_flat_cam2')[:]
-        pca_info_cam1['mean_dark'] = f.get('mean_dark_cam1')[:]
-        pca_info_cam2['mean_dark'] = f.get('mean_dark_cam2')[:]
-        pca_info_cam1['components_matrix'] = f.get('components_matrix_cam1')[:,:]
-        pca_info_cam2['components_matrix'] = f.get('components_matrix_cam2')[:,:]
-        pca_info_cam1['rank'] = f.get('rank')[0]
-        pca_info_cam2['rank'] = f.get('rank')[0]
-        if 'mode_dn' in fkeys:
-            pca_info['mode_dn'] = f.get('mode_dn')[:,:]
-        if 'explained_variance_ratio_cam1' in fkeys:
-            pca_info_cam1['explained_variance_ratio'] = f.get('explained_variance_ratio_cam1')[:]
-            pca_info_cam2['explained_variance_ratio'] = f.get('explained_variance_ratio_cam2')[:]
-        if 'explained_variance_cam1' in fkeys:
-            pca_info_cam1['explained_variance'] = f.get('explained_variance_cam1')[:]
-            pca_info_cam2['explained_variance'] = f.get('explained_variance_cam2')[:]
-    #reshape 
-    x, y = pca_info['image_dimensions']
-    pca_info_cam1['mean_flat'] = pca_info_cam1['mean_flat'].reshape(x,y)
-    pca_info_cam2['mean_flat'] = pca_info_cam2['mean_flat'].reshape(x,y)
-    pca_info_cam1['mean_dark'] = pca_info_cam1['mean_dark'].reshape(x,y)
-    pca_info_cam2['mean_dark'] = pca_info_cam2['mean_dark'].reshape(x,y)
-    pca_info_cam1['components_matrix'] = pca_info_cam1['components_matrix'].reshape(pca_info_cam1['rank'],x*y)
-    pca_info_cam2['components_matrix'] = pca_info_cam2['components_matrix'].reshape(pca_info_cam2['rank'],x*y)
-    return pca_info_cam1, pca_info_cam2
 
 
 
@@ -106,32 +56,42 @@ def calculate_conventional_ffc_im(w, sample_image, PCA_modes, mean_flat, mean_da
     corr_im = (sample_image - mean_dark)/(mean_flat - mean_dark)
     return corr_im
 
-def calculate_ffc_im(w, sample_image, PCA_modes, mean_flat, mean_dark, return_flat=False):
+# def calculate_ffc_im(w, sample_image, PCA_modes, mean_flat, mean_dark, return_flat=False):
+#     x, y = sample_image.shape
+#     flat_dyn =  mean_flat  + (w @ PCA_modes).reshape(x,y)
+#     corr_im = (sample_image - mean_dark)/(flat_dyn - mean_dark)
+#     if return_flat:
+#         return corr_im, flat_dyn
+#     return corr_im
+
+def calculate_ffc_im(w, sample_image, PCA_modes, mean_flat, mean_dark, return_flat=False, low_signal=True):
     x, y = sample_image.shape
     flat_dyn =  mean_flat  + (w @ PCA_modes).reshape(x,y)
     corr_im = (sample_image - mean_dark)/(flat_dyn - mean_dark)
+    if low_signal: 
+        corr_im = (sample_image - mean_dark)/(flat_dyn- mean_dark) 
     if return_flat:
         return corr_im, flat_dyn
     return corr_im
 
-def calculate_ffc_im_sc(w, sample_image, PCA_modes, mean_flat, mean_dark, pca_exp, return_flat=False):
-    x, y = sample_image.shape
-    flat_dyn =  mean_flat  + ((w/np.sqrt(pca_exp)) @ PCA_modes).reshape(x,y)
-    corr_im = (sample_image - mean_dark)/(flat_dyn - mean_dark)
-    if return_flat:
-        return corr_im, flat_dyn
-    return corr_im
+# def calculate_ffc_im_sc(w, sample_image, PCA_modes, mean_flat, mean_dark, pca_exp, return_flat=False):
+#     x, y = sample_image.shape
+#     flat_dyn =  mean_flat  + ((w/np.sqrt(pca_exp)) @ PCA_modes).reshape(x,y)
+#     corr_im = (sample_image - mean_dark)/(flat_dyn - mean_dark)
+#     if return_flat:
+#         return corr_im, flat_dyn
+#     return corr_im
     
-def calculate_ffc_im_denoised(w, sample_image, PCA_modes, mean_flat, mean_dark, weight):
-    x, y = sample_image.shape
-    sample_image_denoised = denoise_tv_chambolle(sample_image, weight = weight, n_iter_max=100)
-    plt.imshow(sample_image_denoised,cmap='gray') 
-    flat_dyn =  mean_flat  + (w @ PCA_modes).reshape(x,y)
-    flat_dyn_denoised = denoise_tv_chambolle(flat_dyn,weight = weight, n_iter_max=100)
-#     plt.imshow(flat_dyn_denoised,cmap='gray') 
-    flat_dyn_denoised - mean_dark
-    corr_im = (sample_image_denoised - mean_dark)/(flat_dyn_denoised - mean_dark)
-    return corr_im
+# def calculate_ffc_im_denoised(w, sample_image, PCA_modes, mean_flat, mean_dark, weight):
+#     x, y = sample_image.shape
+#     sample_image_denoised = denoise_tv_chambolle(sample_image, weight = weight, n_iter_max=100)
+#     plt.imshow(sample_image_denoised,cmap='gray') 
+#     flat_dyn =  mean_flat  + (w @ PCA_modes).reshape(x,y)
+#     flat_dyn_denoised = denoise_tv_chambolle(flat_dyn,weight = weight, n_iter_max=100)
+# #     plt.imshow(flat_dyn_denoised,cmap='gray') 
+#     flat_dyn_denoised - mean_dark
+#     corr_im = (sample_image_denoised - mean_dark)/(flat_dyn_denoised - mean_dark)
+#     return corr_im
 
 def cost_function_discrete_gradient(w, sample_image, PCA_modes, mean_flat, mean_dark):
     x, y = sample_image.shape
@@ -182,12 +142,13 @@ def crop_pca_info(pca_info, crop_parameters):
     pca_info_cropped['components_matrix'] = pca_info['components_matrix'].reshape(pca_info['rank'],pca_info['image_dimensions'][0],pca_info['image_dimensions'][1])[:,xmin:xmax,ymin:ymax].reshape(pca_info['rank'],x*y)
 #     print('reading pca_info file: ', pca_info['mode_matrix'].shape, pca_info['image_dimensions'], pca_info['mean_flat'].shape)
     return pca_info_cropped    
+
 # .#####################################################################################################
 
 
 
-def dffc_correct(images, pca_info, ds_parameter, fctr=10000000000.0, x0_last=False, crop=False, crop_parameters=None, omit_frames=False, first_corr_frame=0):
-    if len(images)==3:
+def dffc_correct(images, pca_info, ds_parameter, fctr=10000000000.0, x0_last=False, crop=False, crop_parameters=None, omit_frames=False, first_corr_frame=0,low_snr=False):
+    if len(images.shape)==3:
         buff, x, y = images.shape
         if crop:
             pca_infoi = crop_pca_info(pca_info, crop_parameters)
@@ -199,24 +160,20 @@ def dffc_correct(images, pca_info, ds_parameter, fctr=10000000000.0, x0_last=Fal
         if omit_frames:
             start_buff = first_corr_frame
             data_sample_corrected = np.zeros((buff-start_buff, x, y))
-
-        x0 = np.zeros(pca_infoi['rank'])    # init conditions    
+ 
         for i,i_image in enumerate(np.arange(start_buff,buff)):
             image = images[i_image,:,:]
-            #
             args = (image, pca_infoi['components_matrix'], pca_infoi['mean_flat'], pca_infoi['mean_dark'], x, y)
             args_down = downscale_args(args,ds_parameter)
-            w_eff = op.fmin_l_bfgs_b(cost_function_discrete_gradient, x0, fprime=fprime_dg,args=args_down[:-2],factr=fctr,iprint=0)
-            w_eff_x = w_eff[0]
+            w_eff_x = op.fmin_l_bfgs_b(cost_function_discrete_gradient, x0, fprime=fprime_dg,args=args_down[:-2],factr=fctr,iprint=0)[0]
             if x0_last:
                 x0 = w_eff_x
-            # ..................RECONSTRUCTION...........................................
-            # FFC
-            convFFC_i = calculate_conventional_ffc_im(w_eff_x, image, pca_infoi['components_matrix'], pca_infoi['mean_flat'], pca_infoi['mean_dark']) #np.zeros(image.shape)) # 
-            dynFFCx_i, dffc_flat = calculate_ffc_im(w_eff_x, image, pca_infoi['components_matrix'], pca_infoi['mean_flat'],pca_infoi['mean_dark'],return_flat=True) #np.zeros(image.shape))# pca_info['mean_dark']) #
-            # scaled
-            origsc = image/np.mean(image)*np.mean(convFFC_i)
+            # FF Correction
+            convFFC_i = calculate_conventional_ffc_im(w_eff_x, image, pca_infoi['components_matrix'], pca_infoi['mean_flat'], pca_infoi['mean_dark']) #np.zeros(image.shape)) #
+            dynFFCx_i, dffc_flat = calculate_ffc_im(w_eff_x, image, pca_infoi['components_matrix'], pca_infoi['mean_flat'],pca_infoi['mean_dark'],return_flat=True,low_signal=low_snr) #np.zeros(image.shape))# 
             dynFFCxsc_i = dynFFCx_i/np.mean(dynFFCx_i)*np.mean(convFFC_i)
+            if low_snr:
+                dynFFCxsc_i = dynFFCx_i
             data_sample_corrected[i,:,:] = dynFFCxsc_i
         return data_sample_corrected
     else:
@@ -238,8 +195,7 @@ def dffc_correct_2d(image, pca_info, ds_parameter, fctr=10000000000.0, x0_last=F
     w_eff = op.fmin_l_bfgs_b(cost_function_discrete_gradient, x0, fprime=fprime_dg,args=args_down[:-2],factr=fctr,iprint=0)
     w_eff_x = w_eff[0]
     if x0_last:
-    x0 = w_eff_x
-    # ..................RECONSTRUCTION...........................................
+        x0 = w_eff_x
     # FFC
     convFFC_i = calculate_conventional_ffc_im(w_eff_x, image, pca_infoi['components_matrix'], pca_infoi['mean_flat'], pca_infoi['mean_dark']) #np.zeros(image.shape)) # 
     dynFFCx_i, dffc_flat = calculate_ffc_im(w_eff_x, image, pca_infoi['components_matrix'], pca_infoi['mean_flat'],pca_infoi['mean_dark'],return_flat=True) #np.zeros(image.shape))# pca_info['mean_dark']) #
@@ -248,3 +204,42 @@ def dffc_correct_2d(image, pca_info, ds_parameter, fctr=10000000000.0, x0_last=F
     dynFFCxsc_i = dynFFCx_i/np.mean(dynFFCx_i)*np.mean(convFFC_i)
     data_sample_corrected[:,:] = dynFFCxsc_i
     return data_sample_corrected
+
+#>......................................................................
+# .......   not needed for online .......................................
+def calculate_rms2(im1):
+    "Calculate the root-mean-square difference between two images"
+    nbins = 100
+#     diff = ImageChops.difference(im1, im2)
+#     h = diff.histogram()
+    hist1 = np.histogram(im1, bins=nbins)
+    idxN = []
+    for i in range(0,hist1[1].shape[0]-1):
+        idxN.append((hist1[1][i] + hist1[1][i+1])/2)
+    sq = (value*(idx**2) for idx, value in zip(idxN,hist1[0]))
+    sum_of_squares = np.sum(sq)
+    rms = math.sqrt(sum_of_squares/float(im1.shape[0]*im1.shape[1]))
+    return rms
+
+def denoise_TV_buffer(buffIm,weight):
+    buffs, _, _ = buffIm.shape
+    dned = np.zeros(buffIm.shape)
+    for b in range(buffs):
+        dned[b,:,:] = denoise_tv_chambolle(buffIm[b,:,:],weight = weight)#, n_iter_max=100)
+    return dned
+
+def denoise_TVbregman_buffer(buffIm,weight=10.):
+    buffs, _, _ = buffIm.shape
+    dned = np.zeros(buffIm.shape)
+    for b in range(buffs):
+        dned[b,:,:] = denoise_tv_bregman(buffIm[b,:,:], weight=weight, max_iter=100, eps=0.001)
+    return dned
+
+def denoise_wavelet_buffer(buffIm, mx_shifts=5):
+    buffs, _, _ = buffIm.shape
+    dned = np.zeros(buffIm.shape)
+    denoise_kwargs = dict(wavelet='db1', rescale_sigma=True)
+    for b in range(buffs):
+        dned[b,:,:] = cycle_spin(buffIm[b,:,:], func=denoise_wavelet, max_shifts=mx_shifts,
+                            func_kw=denoise_kwargs)
+    return dned

@@ -47,9 +47,9 @@ device_prop = {'camera': 'data.image.data', 'motor': 'actualPosition.value','del
 
 # parameters
 # parameters OnNorm            
-flat_run = 40
+# flat_run = 40
 rank = 20
-pca_path = "pca_info" + "_flat_run" + str(flat_run) + "_rank" + str(rank) + ".h5"
+# pca_path = "pca_info" + "_flat_run" + str(flat_run) + "_rank" + str(rank) + ".h5"
 # pca_info_cam1, pca_info_cam2 = read_pca_info_bothCameras('pcaFFinfo_r'+ str(flat_run) + '_Venturi_rank' + str(rank) + '.hf5')
 # or from different h5 files
 flat_run_cam1, flat_run_cam2 = 40, 40
@@ -87,13 +87,6 @@ class bridgeClientShimadzu(QThread):
 class imageView(QtGui.QMainWindow):
     def __init__(self, parent=None, title=None):
         super().__init__(parent)
-        # # parameters & variables
-        # #
-        # self.df1 = pd.DataFrame(columns=['norm1', 'phase1'],dtype=np.float64)
-        # self.df2 = pd.DataFrame(columns=['norm2', 'phase2'],dtype=np.float64)
-        # self.max_len = 10
-
-
         ## gui init
         self.widget = QtGui.QWidget()
         self.area = DockArea()
@@ -167,8 +160,7 @@ class imageView(QtGui.QMainWindow):
         imgs_Shim2 = None
         imgs_Shim1_corrected = None
         imgs_Shim2_corrected = None
-        imgs_Shim1_phase = None
-        imgs_Shim2_phase = None
+
 
         # raw data
         if device_name['shimadzu1'] in dataHPVX.keys(): # 
@@ -177,18 +169,18 @@ class imageView(QtGui.QMainWindow):
         if dataSlave is not None:   # 
             imgs_Shim2 = np.array( dataSlave[device_name['shimadzu2']][device_prop['camera']]*1. )   # SHimadzu 2
             self.imv2.setImage(imgs_Shim2)    
-        if imgs_Shim1 != None and imgs_Shim2 != None:
+        if imgs_Shim1 is not None and imgs_Shim2 is not None:
             imgs_combined = combine_Shimadzus(imgs_Shim1,imgs_Shim2)
             self.imv3.setImage(imgs_combined)    
 
         # normalised
-        if imgs_Shim1 != None:
+        if imgs_Shim1 is not None:
             imgs_Shim1_corrected = dffc_correct(imgs_Shim1, pca_info_cam1, ds_parameter, x0_last=w0_last)
             self.imv11.setImage(imgs_Shim1_corrected)    
-        if imgs_Shim2 != None:
-            imgs_Shim2_corrected = dffc_correct(imgs_Shim2, pca_info_cam1, ds_parameter, x0_last=w0_last)
+        if imgs_Shim2 is not None:
+            imgs_Shim2_corrected = dffc_correct(imgs_Shim2, pca_info_cam2, ds_parameter, x0_last=w0_last)
             self.imv22.setImage(imgs_Shim2_corrected)  
-        if imgs_Shim1 != None and imgs_Shim2 != None:
+        if imgs_Shim1 is not None and imgs_Shim2 is not None:
             imgs_combined_corrected = combine_Shimadzus(imgs_Shim1_corrected,imgs_Shim2_corrected)
             self.imv33.setImage(imgs_combined_corrected)
 
@@ -209,28 +201,26 @@ class imageView(QtGui.QMainWindow):
         data, meta = self.queue.pop()
         return data, meta
 
-    def combine_Shimadzus(Sh1,Sh2):
-        # add different modes to combine imgs
-        tid_both = Sh1.shape[0]+Sh2.shape[0]
-        combined = np.zeros((tid_both,Sh1.shape[1],Sh1.shape[2]))
-        for t in range(0,tid_both):
-            t_ = t//2
-            if t%2==0:
-                combined[t,:,:] = Sh1[t_,:,:]
-            else:
-                combined[t,:,:] = Sh2[t_,:,:]
-        return combined
-
-
-    # def updateDF1(self, delay1, cam1_meanBuff):
-    #     newData = {"delay1": delay1, 'cam1_meanBuff':cam1_meanBuff}
-    #     newIdx = self.df1.shape[0]
-    #     self.df1.loc[newIdx] = newData
-
-    # def updateDF2(self, delay2, cam2_meanBuff):
-    #     newData = {"delay2": delay2, 'cam2_meanBuff':cam2_meanBuff}
-    #     newIdx = self.df2.shape[0]
-    #     self.df2.loc[newIdx] = newData
+    def combine_Shimadzus(Sh1,Sh2,mode='interleaved'):
+        """
+        combine two dataset to one for visualisation
+        modes: {'interleaved', 'append'} 
+        """
+        if Sh1 is not  None and Sh2 is not None:
+            tid_both = Sh1.shape[0]+Sh2.shape[0]
+            combined = np.zeros((tid_both,Sh1.shape[1],Sh1.shape[2]))
+            if mode == 'interleaved':
+                for t in range(0,tid_both):
+                    t_ = t//2
+                    if t%2==0:
+                        combined[t,:,:] = Sh1[t_,:,:]
+                    else:
+                        combined[t,:,:] = Sh2[t_,:,:]
+            if mode == 'append':
+                combined = np.append(Sh1,Sh2,axis=0)
+            return combined
+        else:
+            return None        
 
 
     def threadFin(self):
@@ -239,15 +229,6 @@ class imageView(QtGui.QMainWindow):
     def closeEvent(self,event):
         # stop thread here... weird on macos
         event.accept()
-
-    # # button fun
-    # def normUpdate(self):
-    #     half_size = int(self.df1.shape[0]//2)
-    #     if self.df1.shape[0] > self.max_len:   # if too long DataFrame
-    #         self.df1 = self.df1[half_size:].copy()
-    #     if self.df2.shape[0] > self.max_len:   # if too long DataFrame
-    #         self.df2 = self.df2[half_size:].copy()
-    #     print('DataFrame halved in size.')
 
 
 def request(queue, interface):
