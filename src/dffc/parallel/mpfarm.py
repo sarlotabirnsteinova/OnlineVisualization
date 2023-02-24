@@ -16,6 +16,9 @@ class ReaderBase:
     def read(self):
         pass
 
+    def is_eof(self, nimg):
+        pass
+
     def push(self, first, count):
         pass
 
@@ -65,7 +68,7 @@ class ReaderBase:
                 nimg_wr += nimg_corr
                 self.nimg_wr[0] = nimg_wr
 
-            if nimg == 0 and nimg_wr >= nimg_rd:
+            if self.is_eof(nimg):
                 break
 
             time.sleep(0)
