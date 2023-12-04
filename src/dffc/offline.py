@@ -19,7 +19,7 @@ class FlatFieldCorrectionFileReader(ReaderBase):
             except StopIteration:
                 break
 
-            self.data_chunk = data[self.source].get('data.image.pixels')
+            self.data_chunk = data
             if self.data_chunk is None:
                 continue
 
@@ -27,6 +27,9 @@ class FlatFieldCorrectionFileReader(ReaderBase):
             count = len(self.data_chunk)
 
         return count
+
+    def is_eof(self, nimg):
+        return nimg == 0 and self.nimg_wr[0] >= self.nimg_rd[0]
 
     def push(self, first, count):
         self.tid_queue.append(self.data_tid)
@@ -61,8 +64,7 @@ class FlatFieldCorrectionFileReader(ReaderBase):
         self.trains.append(tid)
 
     def run(self, dc):
-        cam_data = dc.select([(self.source, "data.image.pixels")])
-        self.data_iter = iter(cam_data.trains())
+        self.data_iter = iter([dc])
 
         self.data_chunk = None
         self.data_tid = 0
