@@ -161,6 +161,7 @@ def dffc_correct(images, pca_info, ds_parameter, fctr=10000000000.0, x0_last=Fal
             start_buff = first_corr_frame
             data_sample_corrected = np.zeros((buff-start_buff, x, y))
  
+        x0 = np.zeros(pca_infoi['rank'])    # init conditions    
         for i,i_image in enumerate(np.arange(start_buff,buff)):
             image = images[i_image,:,:]
             args = (image, pca_infoi['components_matrix'], pca_infoi['mean_flat'], pca_infoi['mean_dark'], x, y)

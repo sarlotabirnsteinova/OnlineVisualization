@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm[toml]", "wheel", "oldest-supported-numpy", "Cython"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+root = "."
+write_to = "src/dffc/_version.py"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project]
+dynamic = ["version"]
+name = "dffc"
+authors = [
+    {name = "Sarlota Birnsteinova"},
+    {name = "Egor Sobolev"},
+]
+description = ""
+readme = "README.md"
+dependencies = [
+]
