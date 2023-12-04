@@ -19,4 +19,5 @@ the total variance of the corrected image.
 
 S. Birnsteinova *et. al.* Online dynamic flat-field correction
 for MHz microscopy data at European XFEL (2023). J. Synchrotron
-Rad. 30, 1030-1037. DOI: (10.1107/S1600577523007336)[http://dx.doi.org/10.1107/S1600577523007336]
+Rad. 30, 1030-1037. DOI: [10.1107/S1600577523007336](
+http://dx.doi.org/10.1107/S1600577523007336)
