@@ -90,7 +90,7 @@ class DynamicFlatFieldCorrectionBase:
         image0 = self.downsample_scale_and_shift(image)
         r = fmin_l_bfgs_b(self.totalvar, w0, args=(image0,),
                           fprime=self.grad_totalvar,
-                          factr=fctr, iprint=0, pgtol=pgtol, maxls=100)
+                          factr=fctr, iprint=-1, pgtol=pgtol, maxls=100)
 
         return r[0], r[2]['warnflag']
 
