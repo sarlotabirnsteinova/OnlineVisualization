@@ -14,9 +14,9 @@ class DynamicFlatFieldCorrectionBase:
         pass
 
     @classmethod
-    def from_file(cls, fn, downsample_factors=(1, 1)):
+    def from_file(cls, fn, camera_name, downsample_factors=(1, 1)):
         dffc = cls()
-        dffc.read_constants(fn)
+        dffc.read_constants(fn, camera_name)
         dffc.set_downsample_factors(*downsample_factors)
         return dffc
 
@@ -27,8 +27,7 @@ class DynamicFlatFieldCorrectionBase:
         dffc.set_downsample_factors(*downsample_factors)
         return dffc
 
-    def read_constants(self, fn):
-        camera_name = self.source.partition('/')[0]
+    def read_constants(self, fn, camera_name):
         with h5py.File(fn, 'r') as f:
             g = f[camera_name]
             dark = g['mean_dark'][:]
