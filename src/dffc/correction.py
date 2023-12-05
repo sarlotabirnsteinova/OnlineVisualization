@@ -10,14 +10,20 @@ from .totalvar_numba import totalvar_numba, grad_totalvar_numba
 
 class DynamicFlatFieldCorrectionBase:
 
-    def __init__(self, source, downsample_factors=(1, 1)):
-        self.source = source
-        self.downsample_factors = downsample_factors
+    def __init__(self):
+        pass
 
     @classmethod
-    def from_file(cls, fn, source, downsample_factors=(1, 1)):
-        dffc = cls(source, downsample_factors)
+    def from_file(cls, fn, downsample_factors=(1, 1)):
+        dffc = cls()
         dffc.read_constants(fn)
+        dffc.set_downsample_factors(*downsample_factors)
+        return dffc
+
+    @classmethod
+    def from_constants(cls, dark, flat, components, downsample_factors=(1, 1)):
+        dffc = cls()
+        dffc.set_constants(dark, flat, components)
         dffc.set_downsample_factors(*downsample_factors)
         return dffc
 
