@@ -109,12 +109,10 @@ class NumberCruncherBase:
 
 class ParallelProcessor:
 
-    NumberCruncher = NumberCruncherBase
-    Reader = ReaderBase
-
     def __init__(self, alg, nwrk, buf_size=4096):
         self.nwrk = nwrk
         self.alg = alg
+        self.alg_cls = type(self.alg)
         self.pool = []
         self.buf_size = buf_size
 
@@ -138,25 +136,37 @@ class ParallelProcessor:
     def shmem_declare(self):
         pass
 
+    def number_cruncher_constructor(self, wrk_id):
+        def constructor():
+            return NumberCruncherBase(
+                self.nwrk, wrk_id, self._shm, self.buf_size,
+                self.alg_cls, self.args)
+        return constructor
+
+    def reader_constructor(self):
+        def constructor():
+            return ReaderBase(
+                self._shm, self.buf_size, self.alg_cls, self.args)
+        return constructor
+
     def start_workers(self):
         if self.pool:
             return
 
-        def number_cruncher(nwrk, wrk_id, shm, buf_size, alg_cls, args):
-            nc = self.NumberCruncher(
-                nwrk, wrk_id, shm, buf_size, alg_cls, args)
+        def number_cruncher(make_number_cruncher):
+            nc = make_number_cruncher()
             nc.run()
 
-        alg_cls = type(self.alg)
         self.pool = []
         for wrk_id in range(self.nwrk):
-            args = (self.nwrk, wrk_id, self._shm,
-                    self.buf_size, alg_cls, self.args)
-            nc = mp.Process(target=number_cruncher, args=args)
+            make_number_cruncher = self.number_cruncher_constructor(wrk_id)
+            nc = mp.Process(
+                target=number_cruncher, args=(make_number_cruncher,))
             nc.start()
             self.pool.append(nc)
 
-        self.rdr = self.Reader(self._shm, self.buf_size, alg_cls, self.args)
+        make_reader = self.reader_constructor()
+        self.rdr = make_reader()
 
     def join_workers(self):
         for w in self.pool:

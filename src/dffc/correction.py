@@ -10,19 +10,24 @@ from .totalvar_numba import totalvar_numba, grad_totalvar_numba
 
 class DynamicFlatFieldCorrectionBase:
 
-    def __init__(self, source, downsample_factors=(1, 1)):
-        self.source = source
-        self.downsample_factors = downsample_factors
+    def __init__(self):
+        pass
 
     @classmethod
-    def from_file(cls, fn, source, downsample_factors=(1, 1)):
-        dffc = cls(source, downsample_factors)
-        dffc.read_constants(fn)
+    def from_file(cls, fn, camera_name, downsample_factors=(1, 1)):
+        dffc = cls()
+        dffc.read_constants(fn, camera_name)
         dffc.set_downsample_factors(*downsample_factors)
         return dffc
 
-    def read_constants(self, fn):
-        camera_name = self.source.partition('/')[0]
+    @classmethod
+    def from_constants(cls, dark, flat, components, downsample_factors=(1, 1)):
+        dffc = cls()
+        dffc.set_constants(dark, flat, components)
+        dffc.set_downsample_factors(*downsample_factors)
+        return dffc
+
+    def read_constants(self, fn, camera_name):
         with h5py.File(fn, 'r') as f:
             g = f[camera_name]
             dark = g['mean_dark'][:]
@@ -85,7 +90,7 @@ class DynamicFlatFieldCorrectionBase:
         image0 = self.downsample_scale_and_shift(image)
         r = fmin_l_bfgs_b(self.totalvar, w0, args=(image0,),
                           fprime=self.grad_totalvar,
-                          factr=fctr, iprint=0, pgtol=pgtol, maxls=100)
+                          factr=fctr, iprint=-1, pgtol=pgtol, maxls=100)
 
         return r[0], r[2]['warnflag']
 

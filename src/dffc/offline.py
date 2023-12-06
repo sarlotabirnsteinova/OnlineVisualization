@@ -4,11 +4,12 @@ from .parallel import ReaderBase, NumberCruncherBase, ParallelProcessor
 
 
 class FlatFieldCorrectionFileReader(ReaderBase):
-    def __init__(self, shm, buf_size, alg_cls, args):
+    def __init__(self, shm, buf_size, alg_cls, args, source, image_key):
         super().__init__(shm, buf_size, alg_cls, args)
 
         self._shm.map_arrays(self, ['images', 'images_corr'])
-        self.source = args['source']
+        self.source = source
+        self.image_key = image_key
         _, self.ny, self.nx = self.images.shape
 
     def read(self):
@@ -19,7 +20,7 @@ class FlatFieldCorrectionFileReader(ReaderBase):
             except StopIteration:
                 break
 
-            self.data_chunk = data[self.source].get('data.image.pixels')
+            self.data_chunk = data[self.source].get(self.image_key)
             if self.data_chunk is None:
                 continue
 
@@ -108,11 +109,11 @@ class FlatFieldCorrectionNumberCruncher(NumberCruncherBase):
 
 class FlatFieldCorrectionFileProcessor(ParallelProcessor):
 
-    NumberCruncher = FlatFieldCorrectionNumberCruncher
-    Reader = FlatFieldCorrectionFileReader
-
-    def __init__(self, alg, nwrk, buf_size=4096):
+    def __init__(self, alg, nwrk, source, image_key, buf_size=4096):
         super().__init__(alg, nwrk, buf_size)
+        self.source = source
+        self.image_key = image_key
+
         shm = self._shm
 
         shm.r.dark[:] = alg.dark
@@ -127,10 +128,21 @@ class FlatFieldCorrectionFileProcessor(ParallelProcessor):
         shm.put('components_ds', alg.components_ds)
         shm.r.components_mean[:] = alg.components_mean
 
-        self.args = {
-            'source': alg.source,
-            'downsample_factors': alg.downsample_factors,
-        }
+        self.args = {}
+
+    def number_cruncher_constructor(self, wrk_id):
+        def constructor():
+            return FlatFieldCorrectionNumberCruncher(
+                self.nwrk, wrk_id, self._shm, self.buf_size,
+                self.alg_cls, self.args)
+        return constructor
+
+    def reader_constructor(self):
+        def constructor():
+            return FlatFieldCorrectionFileReader(
+                self._shm, self.buf_size, self.alg_cls, self.args,
+                self.source, self.image_key)
+        return constructor
 
     def shmem_declare(self):
         shm = self._shm
