@@ -21,7 +21,7 @@ def totalvar_numba(w, image, flat0, flat0_mean, comp, comp_mean, vy):
     for k in range(nc):
         factor += nb.float32(w[k]) * comp_mean[k]
 
-    I = 0.0
+    I = 0.0  # noqa: E741
     for y in range(ny):
         for x in range(nx):
             flat_dyn = flat0[y, x]
@@ -35,7 +35,7 @@ def totalvar_numba(w, image, flat0, flat0_mean, comp, comp_mean, vy):
             vx = v
             vy[x] = v
 
-            I += math.sqrt(dx * dx + dy * dy)
+            I += math.sqrt(dx * dx + dy * dy)  # noqa: E741
 
     return I
 
