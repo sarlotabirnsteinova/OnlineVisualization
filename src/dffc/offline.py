@@ -12,6 +12,9 @@ class FlatFieldCorrectionFileReader(ReaderBase):
         self.image_key = image_key
         _, self.ny, self.nx = self.images.shape
 
+    def is_eof(self, nimg):
+        return nimg == 0 and self.nimg_wr[0] >= self.nimg_rd[0]
+
     def read(self):
         count = 0
         while count == 0:
@@ -62,7 +65,7 @@ class FlatFieldCorrectionFileReader(ReaderBase):
         self.trains.append(tid)
 
     def run(self, dc):
-        cam_data = dc.select([(self.source, "data.image.pixels")])
+        cam_data = dc.select([(self.source, self.image_key)])
         self.data_iter = iter(cam_data.trains())
 
         self.data_chunk = None
