@@ -4,10 +4,10 @@ from setuptools import Extension, setup
 
 extensions = [
     Extension(
-        "dffc.totalvar_cython",
+        "dynflatfield.totalvar_cython",
         [
-            "src/dffc/ctotalvar.pyx",
-            "src/dffc/totalvar.c"
+            "src/dynflatfield/ctotalvar.pyx",
+            "src/dynflatfield/totalvar.c"
         ],
         include_dirs=[np.get_include()],
         define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
