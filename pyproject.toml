@@ -4,19 +4,45 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 root = "."
-write_to = "src/dffc/_version.py"
+write_to = "src/dynflatfield/_version.py"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [project]
 dynamic = ["version"]
-name = "dffc"
+name = "dynflatfield"
 authors = [
     {name = "Sarlota Birnsteinova"},
     {name = "Egor Sobolev"},
 ]
-description = ""
+description = "This package implements the dynamic flat-field correction"
 readme = "README.md"
+license = {text = "BSD-3-Clause"}
 dependencies = [
+    "h5py",
+    "matplotlib",
+    "numba",
+    "numpy",
+    "psutil",
+    "scikit-image",
+    "scikit-learn",
+    "scipy",
+    "threadpoolctl",
 ]
+requires-python = ">= 3.8"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/sarlotabirnsteinova/OnlineVisualization"
