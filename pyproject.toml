@@ -18,7 +18,7 @@ authors = [
 ]
 description = "This package implements the dynamic flat-field correction"
 readme = "README.md"
-license = {file = "LICENSE"}
+license = {text = "BSD-3-Clause"}
 dependencies = [
     "h5py",
     "matplotlib",
@@ -43,3 +43,6 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Visualization",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+
+[project.urls]
+Homepage = "https://github.com/sarlotabirnsteinova/OnlineVisualization"
