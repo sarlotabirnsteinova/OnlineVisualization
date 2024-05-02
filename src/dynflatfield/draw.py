@@ -8,7 +8,7 @@ def plot_images(images, figsize=None, nrow=4):
 
     if figsize is None:
         figsize = (16, 10)
-    fig, axs = plt.subplots(ncol, nrow, figsize=figsize)
+    fig, axs = plt.subplots(ncol, nrow, figsize=figsize, squeeze=False)
 
     for k in range(nimage):
         ax = axs[k // nrow, k % nrow]
