@@ -1,5 +1,5 @@
-import time
 import multiprocessing as mp
+import time
 
 from .shmem import SharedMemory
 
@@ -17,9 +17,17 @@ class ReaderBase:
         return True
 
     def read(self):
+        """
+        Returns
+        -------
+        count: int
+            Number of data frames
+        data: object
+            Data to process
+        """
         pass
 
-    def push(self, first, count):
+    def push(self, first, count, data):
         pass
 
     def pop(self, first, count):
@@ -45,14 +53,14 @@ class ReaderBase:
         while True:
             # read data chunk
             if nimg == 0:
-                nimg = self.read()
+                nimg, data = self.read()
 
             # push data chunk to queue
             if self.is_buffer_available(nimg):
                 count.append(nimg)
 
                 # push data chunk
-                self.push(nimg_rd, nimg)
+                self.push(nimg_rd, nimg, data)
 
                 nimg_rd += nimg
                 self.nimg_rd[0] = nimg_rd
