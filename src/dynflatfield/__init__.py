@@ -1,7 +1,7 @@
-# flake8: noqa F401
-from .constants import write_constants, process_flat, process_dark
-from .correction import (
-    DynamicFlatFieldCorrectionBase, DynamicFlatFieldCorrectionNumba,
-    DynamicFlatFieldCorrectionNumpy, DynamicFlatFieldCorrectionCython,
-)
-from .offline import FlatFieldCorrectionFileProcessor
+from .batch_processor import (  # noqa: F401
+    FileDynamicFlatFieldProcessor, QueueDynamicFlatFieldProcessor)
+from .constants import (  # noqa: F401
+    process_dark, process_flat, write_constants)
+from .correction import (  # noqa: F401
+    DynamicFlatFieldCorrectionBase, DynamicFlatFieldCorrectionCython,
+    DynamicFlatFieldCorrectionNumba, DynamicFlatFieldCorrectionNumpy)

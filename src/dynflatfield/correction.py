@@ -164,12 +164,12 @@ class DynamicFlatFieldCorrectionCython(DynamicFlatFieldCorrectionBase):
 
     def totalvar(self, w, image):
         return totalvar_cython(
-            w, image, self.flat_ds, self.flat_ds_mean,
+            w.astype(np.float64), image, self.flat_ds, self.flat_ds_mean,
             self.components_ds, self.components_mean, self._wrkspc)
 
     def grad_totalvar(self, w, image):
         grad_totalvar_cython(
-            w, image, self.flat_ds, self.flat_ds_mean,
+            w.astype(np.float64), image, self.flat_ds, self.flat_ds_mean,
             self.components_ds, self.components_mean, self._wrkspc, self._grad)
         return self._grad
 
